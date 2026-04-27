@@ -21,6 +21,17 @@ handler = WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
 claude = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), "chat_history.json")
+MEMORY_DIR = os.path.join(os.path.dirname(__file__), "memory")
+
+def load_shared_memory():
+    memory = ""
+    files = ["user_preferences.md", "my_personality.md", "球球.md"]
+    for f in files:
+        path = os.path.join(MEMORY_DIR, f)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as mf:
+                memory += mf.read() + "\n\n"
+    return memory.strip()
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -93,10 +104,15 @@ def handle_message(event):
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": user_message})
 
+    shared_memory = load_shared_memory()
+    full_prompt = SYSTEM_PROMPT
+    if shared_memory:
+        full_prompt += f"\n\n## 記憶資料（來自 Claude Code）\n{shared_memory}"
+
     response = claude.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
+        system=full_prompt,
         messages=messages
     )
     reply_text = response.content[0].text

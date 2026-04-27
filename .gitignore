@@ -3,3 +3,4 @@ chat_history.json
 __pycache__/
 *.pyc
 ngrok.exe
+memory/球球.md
